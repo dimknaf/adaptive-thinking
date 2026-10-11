@@ -1,0 +1,28 @@
+{
+ "n": 3,
+ "seed": 2,
+ "cats": [
+  "name",
+  "drink",
+  "pet"
+ ],
+ "prompt": "There are 3 houses in a row, numbered 1 to 3 from left to right.\nEach house has a different name, drink and pet.\n\nThe attributes are:\n  name: Alice, Bob, Carol\n  drink: tea, coffee, milk\n  pet: cat, dog, bird\n\nClues:\n  1. The name Alice is in house 1.\n  2. The drink milk and the pet bird are the same house.\n  3. The name Carol is not the same house as the pet bird.\n  4. The drink tea is in house 2.\n  5. The name Alice and the pet dog are the same house.\n\nWork out the complete grid. Give your final answer as one line per house, in the form:\n  House 1: name=..., drink=..., pet=...",
+ "solution": {
+  "name": [
+   "Alice",
+   "Carol",
+   "Bob"
+  ],
+  "drink": [
+   "coffee",
+   "tea",
+   "milk"
+  ],
+  "pet": [
+   "dog",
+   "cat",
+   "bird"
+  ]
+ },
+ "n_clues": 5
+}

@@ -1,0 +1,14 @@
+# The offline test suite and the linter, installed on top of requirements.txt.
+#
+# Pinned to the versions the golden traces in tests/golden/ were recorded
+# with. The goldens compare bytes, including httpx's HTTPStatusError message
+# text and Starlette's SSE headers, so a library release can change them with
+# no change to this repo. Bump these deliberately, together with
+# UPDATE_GOLDENS=1, never implicitly.
+pytest==9.0.2
+httpx==0.28.1
+fastapi==0.121.2
+starlette==0.46.2
+python-dotenv==1.2.2
+# The linter's findings differ between releases; pyproject.toml configures it.
+ruff==0.1.14

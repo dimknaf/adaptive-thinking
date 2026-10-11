@@ -1,0 +1,50 @@
+{
+ "n": 5,
+ "seed": 1,
+ "cats": [
+  "name",
+  "drink",
+  "pet",
+  "color",
+  "hobby"
+ ],
+ "prompt": "There are 5 houses in a row, numbered 1 to 5 from left to right.\nEach house has a different name, drink, pet, color and hobby.\n\nThe attributes are:\n  name: Alice, Bob, Carol, Dan, Erin\n  drink: tea, coffee, milk, water, juice\n  pet: cat, dog, bird, fish, horse\n  color: red, blue, green, white, yellow\n  hobby: chess, painting, hiking, baking, reading\n\nClues:\n  1. The color blue and the pet dog are the same house.\n  2. The name Erin is next to the pet dog.\n  3. The color green is next to the drink coffee.\n  4. The drink juice is not the same house as the hobby baking.\n  5. The color green is not the same house as the pet fish.\n  6. The drink milk and the hobby reading are the same house.\n  7. The drink juice is not the same house as the name Bob.\n  8. The drink tea is next to the hobby baking.\n  9. The color blue is somewhere left of the drink tea.\n  10. The color yellow is not the same house as the pet horse.\n  11. The color white and the hobby hiking are the same house.\n  12. The name Dan is immediately left of the pet bird.\n  13. The hobby hiking and the name Carol are the same house.\n  14. The hobby hiking and the pet bird are the same house.\n  15. The drink juice is next to the hobby reading.\n  16. The color yellow is somewhere left of the pet fish.\n  17. The name Erin is not the same house as the pet cat.\n  18. The color red is somewhere left of the drink milk.\n  19. The color yellow is somewhere left of the hobby chess.\n\nWork out the complete grid. Give your final answer as one line per house, in the form:\n  House 1: name=..., drink=..., pet=..., color=..., hobby=...",
+ "solution": {
+  "name": [
+   "Bob",
+   "Alice",
+   "Erin",
+   "Dan",
+   "Carol"
+  ],
+  "drink": [
+   "water",
+   "juice",
+   "milk",
+   "coffee",
+   "tea"
+  ],
+  "pet": [
+   "cat",
+   "fish",
+   "horse",
+   "dog",
+   "bird"
+  ],
+  "color": [
+   "yellow",
+   "red",
+   "green",
+   "blue",
+   "white"
+  ],
+  "hobby": [
+   "painting",
+   "chess",
+   "reading",
+   "baking",
+   "hiking"
+  ]
+ },
+ "n_clues": 19
+}

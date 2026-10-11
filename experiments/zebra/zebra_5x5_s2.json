@@ -1,0 +1,50 @@
+{
+ "n": 5,
+ "seed": 2,
+ "cats": [
+  "name",
+  "drink",
+  "pet",
+  "color",
+  "hobby"
+ ],
+ "prompt": "There are 5 houses in a row, numbered 1 to 5 from left to right.\nEach house has a different name, drink, pet, color and hobby.\n\nThe attributes are:\n  name: Alice, Bob, Carol, Dan, Erin\n  drink: tea, coffee, milk, water, juice\n  pet: cat, dog, bird, fish, horse\n  color: red, blue, green, white, yellow\n  hobby: chess, painting, hiking, baking, reading\n\nClues:\n  1. The drink water is immediately left of the hobby baking.\n  2. The drink water is in house 3.\n  3. The drink milk is next to the hobby hiking.\n  4. The name Alice is not the same house as the pet bird.\n  5. The color yellow is somewhere left of the name Dan.\n  6. The hobby painting is next to the name Erin.\n  7. The drink milk is in house 1.\n  8. The hobby painting is not the same house as the pet horse.\n  9. The color green is somewhere left of the drink tea.\n  10. The color red and the drink coffee are the same house.\n  11. The drink milk is not the same house as the pet fish.\n  12. The color blue is not the same house as the pet fish.\n  13. The pet cat is in house 5.\n  14. The color blue is immediately left of the name Carol.\n  15. The hobby painting is not the same house as the name Carol.\n  16. The name Bob is immediately left of the pet cat.\n  17. The color white is next to the pet fish.\n  18. The hobby chess is immediately left of the pet dog.\n\nWork out the complete grid. Give your final answer as one line per house, in the form:\n  House 1: name=..., drink=..., pet=..., color=..., hobby=...",
+ "solution": {
+  "name": [
+   "Alice",
+   "Erin",
+   "Dan",
+   "Bob",
+   "Carol"
+  ],
+  "drink": [
+   "milk",
+   "juice",
+   "water",
+   "tea",
+   "coffee"
+  ],
+  "pet": [
+   "horse",
+   "dog",
+   "fish",
+   "bird",
+   "cat"
+  ],
+  "color": [
+   "yellow",
+   "white",
+   "green",
+   "blue",
+   "red"
+  ],
+  "hobby": [
+   "chess",
+   "hiking",
+   "painting",
+   "baking",
+   "reading"
+  ]
+ },
+ "n_clues": 18
+}

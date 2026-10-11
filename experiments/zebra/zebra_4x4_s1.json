@@ -1,0 +1,38 @@
+{
+ "n": 4,
+ "seed": 1,
+ "cats": [
+  "name",
+  "drink",
+  "pet",
+  "color"
+ ],
+ "prompt": "There are 4 houses in a row, numbered 1 to 4 from left to right.\nEach house has a different name, drink, pet and color.\n\nThe attributes are:\n  name: Alice, Bob, Carol, Dan\n  drink: tea, coffee, milk, water\n  pet: cat, dog, bird, fish\n  color: red, blue, green, white\n\nClues:\n  1. The drink coffee and the name Carol are the same house.\n  2. The color white is next to the drink milk.\n  3. The color blue is next to the drink tea.\n  4. The drink milk is immediately left of the name Dan.\n  5. The color green and the drink milk are the same house.\n  6. The color green is somewhere left of the pet dog.\n  7. The color green is not the same house as the pet fish.\n  8. The name Alice and the pet bird are the same house.\n  9. The color blue is in house 2.\n  10. The name Alice is next to the pet cat.\n\nWork out the complete grid. Give your final answer as one line per house, in the form:\n  House 1: name=..., drink=..., pet=..., color=...",
+ "solution": {
+  "name": [
+   "Bob",
+   "Carol",
+   "Alice",
+   "Dan"
+  ],
+  "drink": [
+   "tea",
+   "coffee",
+   "milk",
+   "water"
+  ],
+  "pet": [
+   "fish",
+   "cat",
+   "bird",
+   "dog"
+  ],
+  "color": [
+   "red",
+   "blue",
+   "green",
+   "white"
+  ]
+ },
+ "n_clues": 10
+}

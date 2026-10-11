@@ -1,0 +1,77 @@
+# Project metadata and tool configuration.
+#
+# The engine is the adaptive_thinking package. It runs from a checkout
+# (`python cli.py`, `python server.py`, `python -m adaptive_thinking.llm`),
+# with the dependencies installed by
+#
+#     pip install -r requirements.txt -r requirements-dev.txt
+#
+# and can also be installed in editable mode with `pip install -e .`. Either
+# way the .env is read from the repository root, next to this file.
+#
+# requirements-dev.txt pins the library versions the goldens in tests/golden/
+# were recorded with; the `dev` extra below only names the tools.
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaptive-thinking"
+version = "0.4.0"
+description = "Research prototype: a model decides mid-answer where to stop and think, explores a small tree of continuations, and resumes, over an OpenAI-compatible vLLM endpoint."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+# Identical to requirements.txt.
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    # Pinned: rule behaviour differs between ruff releases (0.1.14 flags
+    # `type(x) is int` as E721, for example).
+    "ruff==0.1.14",
+]
+
+[tool.setuptools]
+# Only the engine is a package. The launchers (cli.py, server.py), the
+# measurement scripts in experiments/ and tests/ stay in the checkout.
+packages = ["adaptive_thinking"]
+
+[tool.setuptools.package-data]
+# The browser UI server.py serves.
+adaptive_thinking = ["static/*.html"]
+
+[tool.ruff]
+target-version = "py39"
+# The longest line in the tree is 110 characters.
+line-length = 110
+# Measurement scripts for an earlier engine, kept unchanged as provenance.
+extend-exclude = ["experiments/archive"]
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle errors and warnings.
+select = ["E", "F", "W"]
+
+[tool.pytest.ini_options]
+# The offline suite lives in tests/. The measurement scripts are in
+# experiments/, most of them runs against a live endpoint; the root
+# conftest.py keeps them, and every other script, out of collection.
+testpaths = ["tests"]
+# `.` for the adaptive_thinking package and the experiments package the tests
+# import (experiments.bench_hard, experiments.zebra.generate, ...), `tests`
+# for the shared fakes.
+pythonpath = [".", "tests"]
+# Slow and live tests are opt-in: `pytest -m slow`, `pytest -m live`. A later
+# -m on the command line replaces this one.
+addopts = '-ra --strict-markers -m "not slow and not live"'
+markers = [
+    "slow: CPU-heavy, e.g. regenerating the 5x5 zebra puzzle (several minutes); run with -m slow",
+    "live: needs a real endpoint; opt-in only, never run in CI",
+]

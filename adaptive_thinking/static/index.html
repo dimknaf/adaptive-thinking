@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adaptive Thinking</title>
+<style>
+  /* ---------------------------------------------------------------------
+     Tokens. Light, flat, one accent. Every text pair below is >= 4.5:1 on
+     the surface it sits on (measured by guard.py / check.py).
+     --------------------------------------------------------------------- */
+  :root{
+    /* surfaces */
+    --canvas:#f7f7f5; --surface:#ffffff; --surface-2:#fafaf8;
+    --line:#e6e6e1; --line-soft:#efefeb; --line-strong:#d4d4ce;
+    --ink:#0e0f0c; --ink-2:#2c2d29; --dim:#5d5e58;
+    --fill:rgba(14,15,12,.05);
+    /* action: deep blue */
+    --blue:#1646d6; --blue-hover:#1238b0; --blue-press:#0f2f93;
+    --blue-soft:#eef3ff; --blue-wash:#f6f8ff; --blue-edge:#b9c9f5;
+    --blue-ring:#d0dbf8; --blue-flash:#c9d6fa; --blue-flash-2:#e3eafc;
+    /* thinking: amber */
+    --amber:#9a4a00; --amber-line:#e59a3a; --amber-edge:#f0c793;
+    --amber-soft:#fff4e6; --amber-wash:#fffaf3; --amber-rule:#f5e3c9;
+    --amber-ring:rgba(229,154,58,.55);
+    /* the opening thought: violet */
+    --violet:#6d3fd6; --violet-line:#9b7be6; --violet-edge:#d6c9f6;
+    --violet-wash:#fbf9ff; --violet-rule:#ebe4fb;
+    /* ranks */
+    --gold:#8a5a0c; --gold-line:#d9a441; --gold-soft:#fdf6e6; --gold-edge:#ead3a4; --gold-ring:rgba(217,164,65,.18);
+    --silver:#545c67; --silver-line:#b8bfc8; --silver-soft:#f3f4f6;
+    --bronze:#8f4e1c; --bronze-line:#d39a6e; --bronze-soft:#fbf1ea;
+    /* discontinued / error */
+    --red:#b42318; --red-deep:#8f1c13; --red-line:#f1b8b2; --red-soft:#fef3f2; --red-strike:#fde2df;
+    /* type */
+    --sans:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Cascadia Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    /* shape */
+    --r-cell:6px; --r-card:12px; --r-panel:14px; --r-pill:999px;
+    --elev-top:0 1px 0 rgba(14,15,12,.03), 0 6px 20px rgba(14,15,12,.06);
+    --elev-bottom:0 -1px 0 rgba(14,15,12,.03), 0 -6px 20px rgba(14,15,12,.06);
+    /* motion */
+    --ease-out:cubic-bezier(.2,.8,.2,1);
+    --spring:cubic-bezier(.175,.885,.32,1.275);
+    --grow:cubic-bezier(.34,1.2,.64,1);
+    --t-fast:150ms; --t-med:260ms; --t-slow:400ms;
+  }
+
+  *{box-sizing:border-box}
+  ::selection{background:#d4defa;color:var(--ink)}
+  body{margin:0;background:var(--canvas);color:var(--ink);
+       font:15px/1.6 var(--sans);letter-spacing:.003em;
+       -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+
+  /* ---- header ---------------------------------------------------------- */
+  header{position:sticky;top:0;z-index:5;background:rgba(247,247,245,.86);
+         backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
+         border-bottom:1px solid var(--line);box-shadow:var(--elev-top);padding:10px 16px;}
+  /* the "generating" bar: a band that travels along the header's top edge
+     while a turn runs. Zero width at rest. */
+  header::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;
+                background:var(--blue);clip-path:inset(0 100% 0 0);pointer-events:none;}
+  .wrap{max-width:860px;margin:0 auto;}
+  h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--ink);}
+  h1 small{color:var(--dim);font-weight:400;margin-left:8px;font-size:13px;letter-spacing:0;}
+  .knobs{margin-top:6px;font:11px/1.5 var(--mono);color:var(--dim);
+         display:flex;flex-wrap:wrap;gap:3px 4px;letter-spacing:-.01em;}
+  .knobs b{color:var(--ink);font-weight:600;background:var(--fill);
+           border-radius:var(--r-pill);padding:0 6px;margin-right:5px;}
+
+  main{max-width:860px;margin:0 auto;padding:20px 16px 140px;}
+
+  /* ---- messages -------------------------------------------------------- */
+  .msg{margin:0 0 22px;}
+  .who{font:600 11px var(--sans);color:var(--dim);text-transform:uppercase;
+       letter-spacing:.07em;margin-bottom:8px;}
+  .user{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+        padding:10px 14px;color:var(--ink);}
+  .answer{white-space:pre-wrap;word-break:break-word;color:var(--ink);
+          font-size:16px;line-height:1.65;letter-spacing:-.003em;}
+  .answer .tok{border-radius:2px;}
+  /* low-entropy tokens carry no tint: only real peaks glow, so the answer
+     does not read as a patchwork of beige boxes (JS adds .calm below a=0.3) */
+  .answer .tok.calm:not(.flash):not(.dying){background-color:transparent!important;}
+  /* probed: a transparent dotted border keeps the box; the visible underline
+     is drawn into that border area by a background line */
+  .answer .tok.probed{border-bottom:1px dotted transparent;cursor:help;
+     background-image:linear-gradient(var(--amber-line),var(--amber-line));
+     background-origin:border-box;background-repeat:no-repeat;
+     background-position:0 100%;background-size:100% 1px;}
+  .answer .tok.dying{background-color:var(--red-strike)!important;color:var(--red);
+     text-decoration:line-through;text-decoration-color:var(--red);background-image:none;}
+
+  .spark{display:flex;align-items:flex-end;gap:1px;height:26px;margin:8px 0 2px;
+         padding:0 1px;border-bottom:1px solid var(--line);overflow:hidden;}
+  .spark i{width:3px;background:#b9bab3;flex:0 0 auto;border-radius:1px 1px 0 0;
+           transform-origin:50% 100%;}
+  .spark i.hi{background:var(--amber-line);}
+  .sparklabel{font:10.5px var(--mono);color:var(--dim);margin-bottom:12px;}
+
+  /* ---- a thinking block ----------------------------------------------- */
+  .block{border:1px solid var(--amber-edge);border-radius:var(--r-panel);margin:12px 0;
+         background:var(--amber-wash);overflow:hidden;transform-origin:50% 0;}
+  .block.closed{border-color:var(--line);background:var(--surface);}
+  .bhead{position:relative;display:flex;align-items:center;gap:10px;padding:8px 12px;
+         font:500 12px var(--mono);color:var(--amber);border-bottom:1px solid var(--amber-rule);}
+  /* the "still thinking" band on the header's bottom rule; zero width at rest */
+  .bhead::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;border-radius:2px;
+                background:var(--amber-line);clip-path:inset(0 100% 0 0);pointer-events:none;}
+  .block.closed .bhead{border-bottom:none;color:var(--dim);}
+  .bhead .tail{color:var(--dim);font-weight:400;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .block.opening{border-color:var(--violet-edge);background:var(--violet-wash);}
+  .block.opening .bhead{color:var(--violet);border-bottom-color:var(--violet-rule);}
+  .block.opening .bhead::after{background:var(--violet-line);}
+
+  /* ---- the conversations ------------------------------------------------ */
+  .streams{display:flex;gap:10px;padding:26px 10px 4px;overflow-x:auto;align-items:stretch;
+           scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;}
+  .stream{flex:0 0 230px;border:1px solid var(--line);border-radius:var(--r-card);
+          background:var(--surface);display:flex;flex-direction:column;height:300px;}
+  .stream{position:relative;overflow:visible;}
+  .stream .shead{font:10.5px var(--mono);color:var(--dim);padding:9px 10px 6px;
+                 border-bottom:1px solid var(--line-soft);white-space:nowrap;
+                 overflow:hidden;text-overflow:ellipsis;}
+  .stream .sbody{font:11px/1.55 var(--mono);color:var(--ink-2);padding:8px 10px;
+                 white-space:pre-wrap;word-break:break-word;flex:1 1 auto;
+                 min-height:0;overflow-y:auto;scrollbar-width:thin;
+                 scrollbar-color:var(--line-strong) transparent;}
+  /* the leading conversation: deep-blue outline, a very soft wash, and a
+     moving accent on its top edge (invisible at rest) */
+  .stream.lead{border-color:var(--blue);background:var(--blue-wash);}
+  .stream.lead::before{content:"";position:absolute;left:12px;right:12px;top:-1px;height:2px;
+                       border-radius:2px;background:var(--blue);clip-path:inset(0 100% 0 0);
+                       pointer-events:none;}
+  .stream .shead.leadh{color:var(--blue);font-weight:600;border-bottom-color:var(--blue-soft);}
+  /* rank lives on the badge; only the winner's card carries gold */
+  .stream.fin{opacity:1;border-style:solid;background:var(--surface);border-color:var(--line-strong);}
+  .stream.fin .shead{color:var(--gold);}
+  .stream.g1{border-color:var(--gold-line);box-shadow:0 0 0 3px var(--gold-ring);}
+  .stream.g2,.stream.g3{border-color:var(--line-strong);}
+  /* while a thought is still writing, "leading" outranks the medal: blue
+     until it finishes, gold once it has */
+  .stream.lead:not(.fin){border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-ring);}
+  .stream.dead{opacity:.74;flex-basis:170px;border-style:dashed;border-color:var(--line-strong);
+               background:var(--surface-2);box-shadow:none;filter:grayscale(.6);}
+  .stream.retired{border-color:var(--red-line);}
+  .stream.dead .shead,.stream.retired .shead{color:var(--red-deep);}
+  .stream.dead .sbody{color:var(--ink-2);text-decoration:line-through;
+                      text-decoration-color:rgba(180,35,24,.28);}
+
+  /* rank badge: sits OUTSIDE the card, over its top-left corner, and ends
+     above the header's label so it never hides it */
+  .badge{position:absolute;top:-18px;left:-10px;z-index:2;display:flex;
+         align-items:center;gap:4px;height:24px;padding:0 9px 0 6px;
+         border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--line);
+         font:600 12px var(--mono);color:var(--dim);cursor:help;
+         box-shadow:0 1px 2px rgba(14,15,12,.08);white-space:nowrap;}
+  .badge .m{font-size:13px;line-height:1;}
+  .badge .n{font-size:12px;color:var(--ink);}
+  .badge.g1{border-color:var(--gold-line);color:var(--gold);background-color:var(--gold-soft);}
+  .badge.g1 .n{color:var(--gold);}
+  .badge.g2{border-color:var(--silver-line);color:var(--silver);background-color:var(--silver-soft);}
+  .badge.g2 .n{color:var(--silver);}
+  .badge.g3{border-color:var(--bronze-line);color:var(--bronze);background-color:var(--bronze-soft);}
+  .badge.g3 .n{color:var(--bronze);}
+  .stream.dead .badge,.stream.dead .badge .n{color:var(--ink);}
+
+  /* ---- the token grid --------------------------------------------------- */
+  .gridwrap{border-top:1px solid var(--amber-rule);}
+  .block.opening .gridwrap{border-top-color:var(--violet-rule);}
+  .glabel{font:10.5px var(--mono);color:var(--dim);padding:8px 10px 0;}
+  .tree{padding:8px 10px;font:11px/1.45 var(--mono);overflow-x:auto;
+        scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;}
+  .trow{display:flex;gap:4px;align-items:stretch;margin-bottom:2px;}
+  .trow:not(:last-child){box-shadow:0 2px 0 -1px var(--line-soft);}
+  .tstep{color:var(--dim);width:84px;flex:0 0 auto;white-space:nowrap;align-self:center;}
+  .tcell{flex:1 1 0;min-width:74px;padding:2px 6px;border-radius:var(--r-cell);
+         background:var(--surface);border:1px solid var(--line);color:var(--ink-2);
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tcell.best{border-color:var(--blue-edge);color:var(--blue);background:var(--blue-wash);font-weight:600;}
+  .tcell .par{color:var(--dim);font-weight:400;}
+  .tcell.merge{border-color:var(--amber-line);}
+
+  /* ---- its own words ---------------------------------------------------- */
+  /* the left rule is a ::before so it can draw itself before the text wipes in;
+     the border keeps its 2px and is only made transparent */
+  .mono{position:relative;margin:0 10px 10px;padding:8px 12px;border-left:2px solid transparent;
+        border-radius:0 8px 8px 0;background:var(--amber-soft);color:#4a3a26;
+        font:11px/1.6 var(--mono);white-space:pre-wrap;}
+  .mono::before{content:"";position:absolute;left:-2px;top:0;bottom:0;width:2px;
+                background:var(--amber-line);transform-origin:50% 0;pointer-events:none;}
+  .mono b{color:var(--amber);font-weight:600;}
+  .block.opening .mono{background:#f5f1fe;color:#3b2d5c;}
+  .block.opening .mono::before{background:var(--violet-line);}
+  .block.opening .mono b{color:var(--violet);}
+
+  /* ---- the chip that replaces a closed block ---------------------------- */
+  /* 14px, not a full pill: at 390px the chip wraps to two lines, and a
+     999px radius turns a two-line box into a lozenge */
+  .chip{display:inline-flex;align-items:flex-start;gap:8px;border:1px solid var(--line);
+        background:var(--surface);border-radius:14px;padding:4px 12px;margin:6px 0;
+        font:11px/1.5 var(--mono);color:var(--ink);cursor:pointer;user-select:none;}
+  .chip:hover{border-color:var(--amber-edge);background:var(--amber-soft);color:var(--amber);}
+  .chip .dot{position:relative;width:6px;height:6px;margin-top:5px;border-radius:50%;background:var(--amber-line);flex:0 0 auto;}
+  .chip.changed{border-color:var(--blue-edge);}
+  .chip.changed .dot{background:var(--blue);}
+  .chip.changed .dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;
+                            border:1.5px solid var(--blue);opacity:0;pointer-events:none;}
+
+  /* ---- gate lines, notices ---------------------------------------------- */
+  .gate{position:relative;font:11px var(--mono);color:var(--dim);margin:6px 0;padding-left:12px;}
+  .gate b{color:var(--ink);font-weight:600;}
+  .gate .fire{position:relative;display:inline-block;padding:0 6px;color:var(--amber);font-weight:600;
+              background:var(--amber-soft);border-radius:var(--r-pill);}
+  .gate .pass{color:var(--dim);}
+  .gate.fired::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:2.5px;
+                      border-radius:2px;background:var(--amber-line);transform-origin:50% 50%;}
+  .collapsed{font:11px var(--mono);color:var(--dim);border-left:2px solid var(--line-strong);
+             padding:4px 10px;margin:10px 0;}
+  .stats{font:11px var(--mono);color:var(--dim);border-top:1px solid var(--line);
+         margin-top:14px;padding-top:8px;display:flex;flex-wrap:wrap;gap:4px 10px;}
+  .stats b{color:var(--ink);font-weight:600;margin-right:6px;}
+  .restart{border:1px solid var(--red-line);background:var(--red-soft);border-radius:var(--r-card);
+           padding:8px 12px;margin:10px 0;font:12px var(--mono);color:var(--red);}
+  .err{color:var(--red);font:12px var(--mono);}
+
+  /* ---- footer ------------------------------------------------------------ */
+  footer{position:fixed;bottom:0;left:0;right:0;z-index:6;background:rgba(247,247,245,.88);
+         backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
+         border-top:1px solid var(--line);box-shadow:var(--elev-bottom);padding:12px 16px;}
+  .row{display:flex;gap:8px;max-width:860px;margin:0 auto;}
+  input[type=text]{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line-strong);
+    border-radius:var(--r-pill);color:var(--ink);padding:10px 16px;font:14px var(--sans);outline:none;}
+  input[type=text]::placeholder{color:var(--dim);opacity:1;}
+  input[type=text]:hover{border-color:#bdbdb6;}
+  input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-ring);}
+  button{background:var(--blue);color:#fff;border:0;border-radius:var(--r-pill);
+         padding:0 18px;font:600 13px var(--sans);cursor:pointer;}
+  button:hover{background:var(--blue-hover);}
+  button:active{background:var(--blue-press);}
+  button:disabled{background:var(--blue-soft);color:var(--blue);cursor:default;}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong);}
+  button.ghost:hover{background:var(--fill);}
+  button:focus-visible,.chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  .opts{max-width:860px;margin:8px auto 0;font:11px var(--mono);color:var(--dim);
+        display:flex;gap:16px;align-items:center;}
+  .opts label{cursor:pointer;display:flex;gap:6px;align-items:center;}
+  .opts input[type=checkbox]{accent-color:var(--blue);}
+  .opts input[type=checkbox]:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  #status{position:relative;color:var(--dim);}
+  body.busy #status::before{content:"";position:absolute;left:-12px;top:50%;width:6px;height:6px;
+                            margin-top:-3px;border-radius:50%;background:var(--blue);}
+
+  /* ======================================================================
+     Motion. Everything reports a state change; nothing decorates idle UI.
+     Arrivals 220-480ms ease-out, small things spring, loops only while
+     something is actually running. Progress indicators are a BAND that
+     travels (clip-path only, so nothing ever overflows its track), never a
+     full-width line that could be mistaken for a border.
+     ====================================================================== */
+  @media (prefers-reduced-motion: no-preference){
+    /* chrome */
+    input[type=text]{transition:border-color var(--t-fast) ease,box-shadow 260ms var(--ease-out);}
+    button{transition:background-color var(--t-fast) ease-in-out,color var(--t-fast) ease-in-out,
+                      transform var(--t-fast) var(--ease-out);}
+    button:active:not(:disabled){transform:scale(.97);}
+    .chip{transition:background-color var(--t-fast) ease,border-color var(--t-fast) ease,
+                     color var(--t-fast) ease,opacity 200ms ease;}
+    body.busy header::after{animation:run 1.3s linear infinite;}
+    body.busy #status::before{animation:breathe 1.2s ease-in-out infinite;}
+
+    /* a new exchange */
+    .msg{animation:rise 360ms var(--ease-out) both;}
+
+    /* answer tokens: inline spans ignore transform, so they arrive by
+       opacity + a short focus pull; a high-entropy token lands with a
+       stronger amber glint that settles into its tint */
+    .answer .tok{animation:tok-in 220ms var(--ease-out) both;}
+    .answer .tok.hot{animation:tok-in 220ms var(--ease-out) both,glint 900ms var(--ease-out) both;}
+    .answer .tok.probed{animation:tok-in 220ms var(--ease-out) both,probe-draw 360ms var(--ease-out) both;}
+    .answer .tok.hot.probed{animation:tok-in 220ms var(--ease-out) both,glint 900ms var(--ease-out) both,
+                                      probe-draw 360ms var(--ease-out) both;}
+    .answer .tok.dying{animation:tok-in 220ms var(--ease-out) both,strike 240ms var(--ease-out) forwards;}
+    .answer .tok.flash{animation:tok-in 220ms var(--ease-out) both,flash 1200ms var(--ease-out) both;}
+    .spark i{animation:bar-grow 320ms var(--grow) both;}
+
+    /* gate lines */
+    .gate{animation:slide-in 280ms var(--ease-out) both;}
+    .gate.fired{animation:slide-in 280ms var(--ease-out) both,line-wash 1400ms var(--ease-out) both;}
+    .gate.fired::before{animation:bar-in 320ms var(--grow) both;}
+    .gate.fired .fire{animation:fire-pop 420ms var(--spring) both,fire-flash 900ms var(--ease-out) both;}
+
+    /* blocks: grow in, run a travelling band on the header rule while the
+       search is open, fill + fade it and ring the block once when it settles,
+       then dissolve (the JS hides it) while the chip lands in its place */
+    .block{animation:grow-in 340ms var(--ease-out) backwards;
+           transition:opacity 280ms cubic-bezier(.4,0,.2,1),transform 280ms cubic-bezier(.4,0,.2,1),
+                      border-color 220ms ease,background-color 220ms ease,
+                      display 280ms allow-discrete;}
+    .block:not(.closed):not(.settled) .bhead::after{animation:run 1.1s linear infinite;}
+    .block.settled:not(.closed) .bhead::after{animation:complete 1000ms var(--ease-out) both;}
+    .block.settled{animation:grow-in 340ms var(--ease-out) backwards,settle-amber 900ms var(--ease-out);}
+    .block.opening.settled{animation:grow-in 340ms var(--ease-out) backwards,settle-violet 900ms var(--ease-out);}
+    .block.closed{animation:none;}
+    .block.closed[style*="none"]{opacity:0;transform:scale(.985);}
+    @starting-style{.block.closed{opacity:0;transform:scale(.985);}}
+    .block.settled .bhead > span:first-child{animation:fade 360ms var(--ease-out) both;}
+    .trow{animation:slide-in 260ms var(--ease-out) both;}
+    .trow .tcell{animation:cell-in 300ms var(--ease-out) both;}
+    .trow .tcell:nth-child(3){animation-delay:30ms}
+    .trow .tcell:nth-child(4){animation-delay:60ms}
+    .trow .tcell:nth-child(5){animation-delay:90ms}
+    .trow .tcell:nth-child(n+6){animation-delay:120ms}
+    /* its own words: the rule draws first, then the text wipes in beside it */
+    .mono{animation:mono-wipe 520ms 160ms var(--ease-out) both;}
+    .mono::before{animation:rule-draw 360ms var(--ease-out) both;}
+
+    /* conversation cards: dealt upward onto the table, 55ms apart */
+    .stream{transition:opacity var(--t-slow) var(--ease-out),border-color 300ms ease,
+                       background-color 300ms ease,box-shadow 300ms ease,
+                       filter var(--t-slow) ease,flex-basis 300ms var(--ease-out);}
+    .stream.enter{animation:deal 480ms cubic-bezier(.2,.9,.25,1.08) both;}
+    .stream.enter[data-deal="1"]{animation-delay:55ms}
+    .stream.enter[data-deal="2"]{animation-delay:110ms}
+    .stream.enter[data-deal="3"]{animation-delay:165ms}
+    .stream.enter[data-deal="4"]{animation-delay:220ms}
+    .stream.enter[data-deal="5"]{animation-delay:275ms}
+    .stream.enter[data-deal="6"]{animation-delay:330ms}
+    .stream.enter[data-deal="7"]{animation-delay:385ms}
+    .block:not(.settled) .stream.lead::before{animation:run 1.6s linear infinite;}
+    /* scale only, no opacity: reorder() re-appends every card at each
+       checkpoint, which restarts this, and a fade would flicker the ranks */
+    .badge{animation:pop 380ms var(--spring) both;}
+    .badge.g1{background-image:linear-gradient(105deg,transparent 42%,rgba(217,164,65,.45) 50%,transparent 58%);
+              background-repeat:no-repeat;background-size:260% 100%;
+              animation:pop 380ms var(--spring) both,shine 800ms 260ms ease-in-out both;}
+
+    /* after the block: the chip lands in the block's amber and cools to white */
+    .chip{animation:chip-land 460ms 240ms var(--ease-out) both;}
+    .chip.changed .dot{animation:dot-pop 420ms 380ms var(--spring) both;}
+    .chip.changed .dot::after{animation:ping 900ms 520ms var(--ease-out) both;}
+    .restart,.collapsed,.err{animation:slide-in 320ms var(--ease-out) both;}
+    .stats{animation:rise 380ms var(--ease-out) both;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important;}
+  }
+
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}}
+  @keyframes fade{from{opacity:0}}
+  @keyframes tok-in{from{opacity:0;filter:blur(2px);background-color:transparent}}
+  @keyframes glint{0%,30%{background-color:rgba(229,154,58,.55)}}
+  @keyframes probe-draw{from{background-size:0 1px}}
+  @keyframes strike{
+    0%{background-color:transparent;color:var(--ink);text-decoration-color:transparent}
+    35%{background-color:var(--red-strike);color:var(--red);text-decoration-color:var(--red)}
+    100%{opacity:.25;filter:blur(1px)}
+  }
+  @keyframes flash{
+    0%{background-color:var(--blue-flash);color:#0b2a8a;box-shadow:0 0 0 2px var(--blue-flash)}
+    45%{background-color:var(--blue-flash-2);color:#0b2a8a;box-shadow:0 0 0 2px var(--blue-flash-2)}
+  }
+  @keyframes bar-grow{from{transform:scaleY(0)}}
+  @keyframes slide-in{from{opacity:0;transform:translateX(-8px)}}
+  @keyframes bar-in{from{transform:scaleY(0);opacity:0}}
+  @keyframes ping{0%{opacity:.7;transform:scale(.92)}100%{opacity:0;transform:scale(1.3)}}
+  @keyframes fire-pop{0%{transform:scale(.85)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+  @keyframes fire-flash{0%{background-color:#ffd9a8}40%{background-color:#ffe6c6}}
+  @keyframes grow-in{from{opacity:0;transform:scale(.97)}}
+  /* indeterminate band: the leading edge runs ahead, the trailing edge
+     follows 25% later, both on a smoothstep curve sampled into linear
+     keyframes (a per-keyframe ease would stall at every stop) */
+  @keyframes run{
+    0%   {clip-path:inset(0 100%  0 0)}
+    12.5%{clip-path:inset(0 92.6% 0 0)}
+    25%  {clip-path:inset(0 74.1% 0 0)}
+    37.5%{clip-path:inset(0 50%   0 7.4%)}
+    50%  {clip-path:inset(0 25.9% 0 25.9%)}
+    62.5%{clip-path:inset(0 7.4%  0 50%)}
+    75%  {clip-path:inset(0 0     0 74.1%)}
+    87.5%{clip-path:inset(0 0     0 92.6%)}
+    100% {clip-path:inset(0 0     0 100%)}
+  }
+  @keyframes complete{
+    0%{clip-path:inset(0 60% 0 0);opacity:1}
+    35%{clip-path:inset(0 0 0 0);opacity:1}
+    100%{clip-path:inset(0 0 0 0);opacity:0}
+  }
+  @keyframes settle-amber{0%{box-shadow:0 0 0 0 var(--amber-edge)}40%{box-shadow:0 0 0 4px var(--amber-soft)}100%{box-shadow:0 0 0 8px transparent}}
+  @keyframes settle-violet{0%{box-shadow:0 0 0 0 var(--violet-edge)}40%{box-shadow:0 0 0 4px var(--violet-rule)}100%{box-shadow:0 0 0 8px transparent}}
+  @keyframes line-wash{0%{background-color:var(--amber-soft)}100%{background-color:transparent}}
+  @keyframes cell-in{from{opacity:0;transform:translateY(-3px)}}
+  @keyframes mono-wipe{from{clip-path:inset(0 calc(100% - 2px) 0 0)}to{clip-path:inset(0 0 0 0)}}
+  @keyframes rule-draw{from{transform:scaleY(0)}}
+  @keyframes deal{from{opacity:0;transform:translateY(14px) scale(.97)}}
+  @keyframes pop{from{transform:scale(.8)}}
+  @keyframes shine{from{background-position:160% 0}to{background-position:-60% 0}}
+  @keyframes chip-land{
+    from{opacity:0;transform:translateY(-8px) scale(.94);background-color:var(--amber-soft);border-color:var(--amber-edge)}
+    60%{background-color:var(--amber-soft);border-color:var(--amber-edge)}
+  }
+  @keyframes dot-pop{0%{transform:scale(0)}60%{transform:scale(1.5)}100%{transform:scale(1)}}
+  @keyframes breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Adaptive Thinking <small id="model">connecting…</small></h1>
+  <div class="knobs" id="knobs"></div>
+</div></header>
+
+<main id="feed"></main>
+
+<footer>
+  <div class="row">
+    <input id="q" type="text" autocomplete="off" placeholder="Ask something with a checkable answer…">
+    <button id="send">Send</button>
+    <button id="reset" class="ghost">Reset</button>
+  </div>
+  <div class="opts">
+    <label><input type="checkbox" id="inline"> keep thinking blocks in the model's context</label>
+    <span id="status"></span>
+  </div>
+</footer>
+
+<script>
+const feed = document.getElementById('feed');
+const qIn  = document.getElementById('q');
+const send = document.getElementById('send');
+const statusEl = document.getElementById('status');
+const SESSION = 's' + Math.random().toString(36).slice(2, 9);
+let busy = false;
+
+fetch('/config').then(r => r.json()).then(c => {
+  document.getElementById('model').textContent = c.model;
+  document.getElementById('knobs').innerHTML = [
+    ['window', c.window_tokens + ' tok'], ['entropy floor', c.entropy_floor],
+    ['gate ≥', c.gate_threshold + ' on ' + (c.gate_axes || []).join('/')],
+    ['beam', c.beam_width + '×' + c.think_branch_k],
+    ['tokens per beam', c.think_chunk],
+    ['opening thought', c.open_think ? 'on' : 'off'],
+    ['choice every', c.choice_every || 'never'],
+    ['evict at', c.evict_age_tokens + ' old'], ['keep newer than', c.evict_keep_tokens],
+  ].map(([k, v]) => `${k} <b>${v}</b>`).join('');
+  document.getElementById('inline').checked = !!c.keep_blocks_inline;
+}).catch(() => document.getElementById('model').textContent = 'no /config');
+
+// One card per LINEAGE, not per slot. uid follows a conversation across steps;
+// slots get reused, so a slot index cannot tell a conversation that moved from
+// one that died. `lead` marks the frontier's best - the pool does not have one.
+const drawCards = (B, beams, step, lead) => {
+  if (!B) return;
+  beams.forEach((b, i) => {
+    let card = B.cards[b.uid];
+    if (!card) {
+      const box = el('div', 'stream');
+      const h = el('div', 'shead');
+      const body = el('div', 'sbody');
+      box.append(h, body);
+      // A lineage that contributed two survivors has SPLIT - the second is a
+      // new conversation, and it should look like a birth.
+      h.textContent = (step === 0 || b.from_uid === b.uid)
+        ? `#${b.uid}` : `#${b.uid} · split from #${b.from_uid} at step ${step}`;
+      card = B.cards[b.uid] = {box, h, body, alive: true};
+      B.streams.append(box);
+      box.classList.add('enter'); box.dataset.deal = String(Math.min(i, 7));
+      setTimeout(() => box.classList.remove('enter'), 700);
+      B.order.push(b.uid);
+    }
+    if (b.text) card.body.textContent = b.text;
+    card.body.scrollTop = card.body.scrollHeight;
+    if (lead) {
+      card.box.classList.toggle('lead', i === 0);
+      card.h.classList.toggle('leadh', i === 0);
+    }
+  });
+};
+
+const el = (tag, cls, txt) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (txt !== undefined) n.textContent = txt;
+  return n;
+};
+const scroll = () => window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+
+// Scored thoughts first, best to worst, then whatever is still writing, then
+// the ones pruning discarded. One rule, so the two handlers cannot disagree.
+function reorder(B) {
+  const rank = c => (c.score !== undefined ? 0 : c.alive ? 1 : 2);
+  B.order.map(u => B.cards[u]).filter(Boolean)
+    .sort((x, y) => rank(x) - rank(y) || (y.score ?? 0) - (x.score ?? 0))
+    .forEach(c => B.streams.append(c.box));
+  B.streams.scrollLeft = 0;
+}
+
+// --- one exchange -----------------------------------------------------------
+function newExchange(question) {
+  const wrapU = el('div', 'msg');
+  wrapU.append(el('div', 'who', 'you'), el('div', 'user', question));
+  const wrapA = el('div', 'msg');
+  wrapA.append(el('div', 'who', 'assistant'));
+  const answer = el('div', 'answer');
+  const spark = el('div', 'spark');
+  const sparkLabel = el('div', 'sparklabel', 'per-token entropy — amber marks a position the gate could branch on');
+  wrapA.append(answer, spark, sparkLabel);
+  feed.append(wrapU, wrapA);
+  return {wrapA, answer, spark};
+}
+
+function run(question) {
+  const ui = newExchange(question);
+  const toks = [];      // token index -> span
+  const bars = [];      // token index -> sparkline bar
+  const blocks = {};    // block id -> {panel, branches[]}
+  let cursor = ui.answer;      // where new tokens go (inside a block while open)
+  const inline = document.getElementById('inline').checked ? 1 : 0;
+  const url = `/chat?session=${SESSION}&q=${encodeURIComponent(question)}&inline=${inline}`;
+  const es = new EventSource(url);
+  busy = true; send.disabled = true; statusEl.textContent = 'generating…'; document.body.classList.add('busy');
+
+  es.onmessage = (e) => {
+    const ev = JSON.parse(e.data);
+    switch (ev.type) {
+
+    case 'token': {
+      const s = el('span', 'tok', ev.text);
+      // Tint by entropy: the gate's raw material, visible before it fires.
+      const a = Math.min(1, Math.max(0, ev.h / 1.8));
+      s.style.backgroundColor = `rgba(229,154,58,${(a * 0.30).toFixed(3)})`;
+      if (a < 0.3) s.classList.add('calm');
+      if (a >= 0.5) s.classList.add('hot');
+      s.title = `H=${ev.h}  logprob=${ev.lp}` +
+                (ev.top ? '\n' + ev.top.map(t => `${JSON.stringify(t.t)} ${t.p}`).join('\n') : '');
+      cursor.append(s);
+      if (ui.answer.classList.contains('flash-next')) s.classList.add('flash');
+      ui.answer.classList.remove('flash-next');
+      toks.push(s);
+      const b = el('i');
+      b.style.height = Math.max(2, Math.min(26, ev.h * 15)) + 'px';
+      if (ev.h >= 0.9) b.className = 'hi';
+      ui.spark.append(b);
+      bars.push(b);
+      if (ui.spark.children.length > 260) { ui.spark.removeChild(ui.spark.firstChild); }
+      break;
+    }
+
+    case 'window': {
+      // The gate's axes, not a coin flip: how much rests on the next step, how
+      // hard it is, and how far it locks the answer in. Everything the gate
+      // read is on the tooltip, including the positions it passed over.
+      const AX = ['stakes', 'difficulty', 'commitment'];
+      const breakdown = p => AX.filter(k => k in p)
+        .map(k => '  ' + k.padEnd(11) + p[k]).join('\n');
+      ev.probed.forEach(p => {
+        const t = toks[p.pos];
+        if (!t) return;
+        t.classList.add('probed');
+        t.title = `${t.title}\n\nhow critical is this step? ${p.crit}\n` + breakdown(p)
+                  + (p.p_yes === undefined ? '' : `\n  (old yes/no  ${p.p_yes})`);
+      });
+      const best = ev.probed[0];
+      const g = el('div', 'gate');
+      g.innerHTML = (ev.opened
+        ? `<span class="fire">▲ gate fired</span> at ${JSON.stringify(best.tok)}`
+        : `<span class="pass">gate quiet</span> — best candidate ${JSON.stringify(best.tok)}`)
+        + ` — criticality <b>${best.crit}</b> · `
+        + AX.filter(k => k in best).map(k => `${k} ${best[k]}`).join(' · ');
+      g.title = breakdown(best);
+      if (ev.opened) g.classList.add('fired');
+      ui.wrapA.append(g);
+      break;
+    }
+
+    case 'degraded': {
+      // The endpoint gave out mid-answer. The thinking above is real and the
+      // answer so far stands; it is simply not finished.
+      ui.wrapA.append(el('div', 'restart',
+        `the endpoint gave out after ${ev.kept} tokens — ${ev.error}. ` +
+        `The thinking and the answer so far are kept; this answer is incomplete.`));
+      scroll();
+      break;
+    }
+
+    case 'restart': {
+      // The block made the model write the answer again from the top. The
+      // note is dropped and the answer resumes without it - shown, not
+      // hidden, because it is a failure of the block and not of the answer.
+      // Only the tokens written since the block, the same as a rewind - the
+      // answer before it stands.
+      const n = Math.min(ev.rewrote, toks.length);
+      toks.splice(toks.length - n, n).forEach(s => s.remove());
+      bars.splice(bars.length - n, n).forEach(b => b.remove());
+      ui.wrapA.append(el('div', 'restart',
+        `the block made it rewrite the answer from the top (${ev.rewrote} tokens) ` +
+        `— thinking discarded, answer resumed without it`));
+      scroll();
+      break;
+    }
+
+    case 'rewind': {
+      // Show the retraction rather than hiding it: these tokens were paid for.
+      const dead = toks.splice(toks.length - ev.tokens, ev.tokens);
+      bars.splice(bars.length - ev.tokens, ev.tokens).forEach(b => b.remove());
+      dead.forEach(s => s.classList.add('dying'));
+      setTimeout(() => dead.forEach(s => s.remove()), 260);
+      break;
+    }
+
+    case 'block_open': {
+      const open = ev.kind === 'open';
+      const panel = el('div', 'block' + (open ? ' opening' : ''));
+      const head = el('div', 'bhead');
+      head.innerHTML = `<span>${open ? 'opening thought' : 'thinking'} &middot; ` +
+                       `${ev.width} conversations advancing together &middot; ` +
+                       `${ev.width}×${ev.branch_k} candidates per token</span>`;
+      // The opening thought has no tail: nothing precedes it. Say where it
+      // sits instead of printing an empty ellipsis.
+      head.append(el('span', 'tail', open ? 'at the top of the turn, before the answer'
+                                          : '…' + (ev.tail || '').trim().slice(-58)));
+      // Two views of the same search. The streams are the conversations; the
+      // grid underneath is the token-by-token mechanics.
+      const streams = el('div', 'streams');
+      const grid = el('div', 'gridwrap');
+      grid.append(el('div', 'glabel',
+        'per token: ' + ev.width + '×' + ev.branch_k + ' candidates → ' + ev.width +
+        ' kept.  ‹n› is the slot it came from.'));
+      const tree = el('div', 'tree');
+      grid.append(tree);
+      panel.append(head, streams, grid);
+      ui.wrapA.append(panel);
+      blocks[ev.id] = {panel, head, tree, streams, width: ev.width, cards: {}, order: []};
+      scroll();
+      break;
+    }
+
+    case 'think_token': {
+      // Live tokens inside a conversation card, between checkpoints. The card
+      // may not exist yet on the very first chunk of a block.
+      const B = blocks[ev.block];
+      const card = B && B.cards[ev.uid];
+      if (card && card.alive) {
+        card.body.textContent += ev.text;
+        card.body.scrollTop = card.body.scrollHeight;   // follow the writing
+      }
+      break;
+    }
+
+    case 'standings': {
+      // Everything still in the running is ranked every checkpoint - the ones
+      // still writing as well as the ones that have finished. Beams pruning
+      // discarded are out and keep no badge.
+      const B = blocks[ev.block];
+      if (!B) break;
+      const MEDAL = ['', String.fromCodePoint(0x1F947), String.fromCodePoint(0x1F948),
+                     String.fromCodePoint(0x1F949)];
+      ev.ranked.forEach(r => {
+        const card = B.cards[r.uid];
+        if (!card) return;
+        card.score = r.overall;
+        card.box.classList.remove('g1', 'g2', 'g3');
+        card.box.classList.toggle('fin', !!r.done);
+        if (r.medal) card.box.classList.add('g' + r.medal);
+
+        if (!card.badge) { card.badge = el('div', 'badge'); card.box.append(card.badge); }
+        card.badge.className = 'badge' + (r.medal ? ' g' + r.medal : '');
+        card.badge.innerHTML = '';
+        if (MEDAL[r.medal]) card.badge.append(el('span', 'm', MEDAL[r.medal]));
+        card.badge.append(el('span', 'n', '#' + r.rank));
+        const sign = r.overall >= 0 ? '+' : '';
+        card.badge.append(el('span', null, sign + r.overall));
+
+        card.badge.title = Object.entries(r.axes)
+          .map(([k, v]) => k.padEnd(13) + v.toFixed(2)).join('\n')
+          + '\noverall      ' + sign + r.overall
+          + '\n' + (r.done ? 'finished' : 'still writing');
+        card.h.textContent = '#' + r.uid + (r.done ? ' · finished' : ' · writing');
+      });
+      reorder(B);
+      break;
+    }
+
+    case 'frontier': {
+      // The conversations exist before the first chunk is written, so their
+      // tokens have somewhere to stream into. Without this a block whose
+      // thoughts all finish in chunk 0 - the normal case - drew nothing.
+      const B = blocks[ev.block];
+      if (B) { drawCards(B, ev.beams, 0, true); reorder(B); }
+      break;
+    }
+
+    case 'think_step': {
+      const B = blocks[ev.block];
+
+      // --- the conversations -------------------------------------------
+      drawCards(B, ev.beams, ev.step, true);
+      // Thoughts that closed themselves are off the frontier but still in the
+      // running, and they keep their card.
+      drawCards(B, ev.pool || [], ev.step, false);
+
+      // Retired for scoring clearly behind the field, and kept on screen with
+      // the score that retired it. Not the same as discontinued (pruned away)
+      // and not the same as finished, which is not a failure at all.
+      (ev.retired || []).forEach(r => {
+        const card = B.cards[r.uid];
+        if (!card || !card.alive) return;
+        card.alive = false;
+        card.box.classList.add('dead', 'retired');
+        card.box.classList.remove('lead');
+        card.h.textContent = card.h.textContent.split(' · ')[0] +
+                             ` · retired ${r.overall >= 0 ? '+' : ''}${r.overall}` +
+                             (r.replaced ? '' : ' · slot closed');
+        card.box.title = r.replaced
+          ? 'not a challenger; a variation of a good branch took its slot'
+          : 'not a challenger, and ' + ev.dry + ' checkpoints have passed without '
+            + 'a better thought — the slot was not worth another 500 tokens';
+      });
+
+      // Discontinued: frozen, dimmed, and kept on screen so the dropped
+      // conversation can still be read.
+      (ev.ended || []).forEach(uid => {
+        const card = B.cards[uid];
+        if (!card || !card.alive) return;
+        card.alive = false;
+        card.box.classList.add('dead');
+        card.box.classList.remove('lead');
+        card.h.textContent = card.h.textContent.split(' · ')[0] +
+                             ` · discontinued at step ${ev.step}`;
+      });
+      // A block can discard many lineages; keeping every card would make the
+      // strip unreadable. Drop all but the most recent few that were pruned
+      // (never the finished ones - those carry the scores).
+      const gone = B.order.map(u => B.cards[u])
+        .filter(c => c && !c.alive && c.score === undefined);
+      gone.slice(0, Math.max(0, gone.length - 6)).forEach(c => {
+        c.box.remove();
+        B.order = B.order.filter(u => B.cards[u] !== c);
+      });
+      reorder(B);
+
+      // --- the token grid ------------------------------------------------
+      const row = el('div', 'trow');
+      // "20→4" is candidates considered to slots kept. The second figure
+      // shows how many of those slots hold a DIFFERENT chunk - below the width
+      // means the backfill took twins.
+      row.append(el('div', 'tstep',
+        `${String(ev.step).padStart(2, ' ')} ${ev.considered}→${ev.beams.length}` +
+        (ev.distinct !== undefined ? ` (${ev.distinct}d)` : '')));
+      const seen = {};
+      ev.beams.forEach(b => { seen[b.parent] = (seen[b.parent] || 0) + 1; });
+      ev.beams.forEach((b, i) => {
+        const c = el('div', 'tcell' + (i === 0 ? ' best' : '') +
+                             (seen[b.parent] > 1 ? ' merge' : ''));
+        c.append(document.createTextNode(JSON.stringify(b.tok)));
+        c.append(el('span', 'par', ` ‹${b.parent}›`));
+        c.title = `#${b.uid}  score ${b.score}\n${b.text}`;
+        row.append(c);
+      });
+      B.tree.append(row);
+      break;
+    }
+
+    case 'monologue': {
+      // The model's own words, written in the same batched request as the
+      // branches. Only present when the block is left in its context.
+      const m = el('div', 'mono');
+      m.innerHTML = '<b>its own words:</b> ';
+      m.append(document.createTextNode(ev.text));
+      const B = blocks[ev.block];
+      B.panel.append(m);
+      break;
+    }
+
+    case 'block_close': {
+      const B = blocks[ev.id];
+      // Two requests per thinking token whatever the width - one advances every
+      // beam, one ranks the candidates. Neither scales with the beam count.
+      // The opening thought replaced no token, so there is nothing it "was
+      // about to write" - saying so would be inventing a comparison.
+      B.head.firstChild.textContent =
+        (ev.kind === 'open' ? 'opening thought · ' : '') +
+        `${ev.steps} checkpoints · ${ev.width} beams · ${ev.requests} requests · ${ev.secs}s` +
+        (ev.kind === 'open' ? ' · the answer starts here'
+                            : ` · was about to write ${JSON.stringify(ev.was_going_to_write)}`);
+      B.close = ev;
+      B.panel.classList.add('settled');
+      break;
+    }
+
+    case 'resumed': {
+      // The only claim that matters: after thinking, did it write something
+      // else? Collapse the tree to a chip and say which way it went.
+      const B = blocks[ev.block];
+      if (!B) break;
+      const chip = el('div', 'chip' + (ev.changed ? ' changed' : ''));
+      chip.append(el('span', 'dot'));
+      const c = B.close || {};
+      chip.append(el('span', null,
+        `thought for ${c.steps || '?'} tokens across ${c.width || '?'} beams · ` +
+        (ev.changed
+          ? `then wrote ${JSON.stringify(ev.now)} instead of ${JSON.stringify(ev.was)}`
+          : `then wrote ${JSON.stringify(ev.now)} anyway — no change`)));
+      chip.onclick = () => {
+        const open = B.panel.style.display !== 'none';
+        B.panel.style.display = open ? 'none' : '';
+        chip.style.opacity = open ? '1' : '.6';
+      };
+      B.panel.classList.add('closed');
+      B.panel.style.display = 'none';
+      B.panel.after(chip);
+      ui.answer.classList.add('flash-next');
+      break;
+    }
+
+    case 'evict': {
+      const cache = typeof ev.cache_hit_before === 'number'
+        ? ` Prefix cache was ${(ev.cache_hit_before * 100).toFixed(1)}% before this.` : '';
+      ui.wrapA.append(el('div', 'collapsed',
+        `evicted ${ev.notes} thinking blocks — oldest was ${ev.oldest_age} tokens behind; ` +
+        `anything newer than ${ev.keep_newer_than} was kept, ${ev.remaining} remain. ` +
+        `${ev.before_tokens} → ${ev.after_tokens} tokens. Deleted, not summarised, so the ` +
+        `next request re-prefills from here.${cache}`));
+      break;
+    }
+
+    case 'done': {
+      const s = ev.stats, st = el('div', 'stats');
+      const pairs = [
+        ['time', s.secs + 's'], ['kept', s.kept_tokens],
+        ['rewound', s.rewound_tokens], ['explored', s.explored_tokens],
+        // The opening thought is one of `blocks` but changed no token - it
+        // replaced nothing - so it is excluded from the count in brackets.
+        ['blocks', `${s.blocks}${s.opening_thought ? ' (1 opening)' : ''} · ` +
+                   `${s.blocks_that_changed_next_token} changed the next token`],
+        ['checkpoints', s.think_steps],
+        ['spills', s.spills],
+        ['blocks in context', s.notes_in_context],
+        ['requests', s.requests],
+        ['resume Δlogprob', s.resume_logprob_delta === null ? 'n/a' : s.resume_logprob_delta],
+      ];
+      st.innerHTML = pairs.map(([k, v]) => `${k} <b>${v}</b>`).join('');
+      ui.wrapA.append(st);
+      break;
+    }
+
+    case 'error':
+      ui.wrapA.append(el('div', 'err', ev.message));
+      break;
+
+    case 'end':
+      es.close();
+      busy = false; send.disabled = false; statusEl.textContent = ''; document.body.classList.remove('busy');
+      scroll();
+      break;
+    }
+  };
+
+  es.onerror = () => {
+    es.close();
+    busy = false; send.disabled = false; statusEl.textContent = 'stream closed'; document.body.classList.remove('busy');
+  };
+}
+
+function submit() {
+  const q = qIn.value.trim();
+  if (!q || busy) return;
+  qIn.value = '';
+  run(q);
+}
+send.onclick = submit;
+qIn.onkeydown = e => { if (e.key === 'Enter') submit(); };
+document.getElementById('reset').onclick = () => {
+  fetch('/reset', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify({session: SESSION})});
+  feed.innerHTML = '';
+};
+qIn.focus();
+</script>
+</body>
+</html>

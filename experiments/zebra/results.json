@@ -1,0 +1,8 @@
+{"arm": "native", "n": 3, "seed": 1, "ok": true, "cells": "9/9", "secs": 45.7, "finish": "stop", "closed": true, "think_chars": 1902, "budget": 261712}
+{"arm": "native", "n": 3, "seed": 2, "ok": true, "cells": "9/9", "secs": 29.4, "finish": "stop", "closed": true, "think_chars": 1131, "budget": 261697}
+{"arm": "native", "n": 4, "seed": 1, "ok": true, "cells": "16/16", "secs": 85.6, "finish": "stop", "closed": true, "think_chars": 3468, "budget": 261521}
+{"arm": "native", "n": 4, "seed": 2, "ok": true, "cells": "16/16", "secs": 66.8, "finish": "stop", "closed": true, "think_chars": 2440, "budget": 261504}
+{"arm": "native", "n": 5, "seed": 2, "ok": true, "cells": "25/25", "secs": 506.3, "finish": "stop", "closed": true, "think_chars": 17974, "budget": 261251}
+{"arm": "ours", "n": 5, "seed": 1, "ok": true, "cells": "25/25", "secs": 1619.59, "blocks": 1, "explored": 32648, "restarts": 0, "retries": 0, "degraded": null, "closed": true, "think_chars": null}
+{"arm": "ours", "n": 5, "seed": 1, "ok": true, "cells": "25/25", "secs": 3702.96, "blocks": 3, "explored": 58725, "restarts": 0, "retries": 0, "degraded": null, "closed": true, "think_chars": null, "effort": "low"}
+{"arm": "native", "n": 5, "seed": 1, "ok": false, "cells": "0/25", "secs": 1562.4, "finish": "stop", "closed": false, "think_chars": 89395, "budget": 261122, "effort": "low"}
